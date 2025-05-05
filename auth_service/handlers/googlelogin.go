@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 	"time"
@@ -47,9 +48,7 @@ func (g *GoogleHandlers) GoogleLogin(c *fiber.Ctx) error {
 
 	payload, err := idtoken.Validate(context.Background(), input.IdToken, audience)
 	if err != nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"error": fmt.Sprintf("invalid google id token:%v", err),
-		})
+		log.Printf("Validate failed: %v | aud=%s", err, audience)
 	}
 
 	email, _ := payload.Claims["email"].(string)
@@ -68,8 +67,9 @@ func (g *GoogleHandlers) GoogleLogin(c *fiber.Ctx) error {
 	var roleLower = strings.ToLower(input.Role)
 
 	switch roleLower {
+
 	case "seller":
-		squery := `SELECT id_seller, email, FROM seller WHERE email=$1`
+		squery := `SELECT id_seller, email, password FROM seller WHERE email=$1`
 		db_seller:= new(entity.Seller)
 		err = conn.QueryRow(ctx, squery, email).Scan(&db_seller.IdSeller, &db_seller.Email, &db_seller.Password)
 		if err != nil {
@@ -88,7 +88,7 @@ func (g *GoogleHandlers) GoogleLogin(c *fiber.Ctx) error {
 					})
 				}
 		} else {
-				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{	
 					"error": "failed to query seller",
 			},
 		)
@@ -109,9 +109,10 @@ case "user":
 						return c.Status(fiber.StatusConflict).JSON(fiber.Map{
 							"status":"error",
 							"message": "email already exist",
-						})
-					}
+						},
+					)
 				}
+			}	
 		}
 	}
 
@@ -176,6 +177,7 @@ case "user":
 			}},
 		)
 	}
+	
 
 	// Optionally handle other roles or return an error fosw unsupported roles
 	return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
