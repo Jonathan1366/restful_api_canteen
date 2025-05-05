@@ -69,13 +69,13 @@ func (g *GoogleHandlers) GoogleLogin(c *fiber.Ctx) error {
 	switch roleLower {
 
 	case "seller":
-		squery := `SELECT id_seller, email, password FROM seller WHERE email=$1`
+		squery := `SELECT id_seller, email, FROM seller WHERE email=$1`
 		db_seller:= new(entity.Seller)
-		err = conn.QueryRow(ctx, squery, email).Scan(&db_seller.IdSeller, &db_seller.Email, &db_seller.Password)
+		err = conn.QueryRow(ctx, squery, email).Scan(&db_seller.IdSeller)
 		if err != nil {
 			if err == pgx.ErrNoRows{
 				//INSERT NEW SELLER
-				iquery := `INSERT INTO seller (nama_seller, email, password, phone_num) VALUES ($1, $2, $3, $4) RETURNING id_seller`
+				iquery := `INSERT INTO seller (nama_seller, email, password, phone_num) VALUES ($1, $2, $3,) RETURNING id_seller`
 				err = conn.QueryRow(ctx, iquery, name, email, "-").Scan(&db_seller.IdSeller)
 				if err != nil {
 					if strings.Contains(err.Error(), "duplicate key"){
@@ -102,7 +102,7 @@ case "user":
 		if err != nil {
 			if err == pgx.ErrNoRows{
 				//insert user baru
-				iquery := `INSERT INTO users (nama_users, email, password) VALUES ($1, $2, $3) RETURNING id_users`
+				iquery := `INSERT INTO users (nama_users, email, password) VALUES ($1, $2, $3, $4) RETURNING id_users`
 				err = conn.QueryRow(ctx, iquery, name, email, "-").Scan(&dbuser.IdUsers)
 				if err != nil {
 					if strings.Contains(err.Error(), "duplicate key") {
