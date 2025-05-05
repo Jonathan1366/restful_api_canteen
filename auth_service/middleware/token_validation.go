@@ -23,7 +23,7 @@ func (h*AuthHandlers) TokenValidationMiddleware(c*fiber.Ctx) error  {
 		})
 	}
 	token = strings.TrimSpace(strings.TrimPrefix(token, "Bearer"))
-
+	
 	//check is there any token in revocation list
 	var exists bool
 		err:=h.DB.QueryRow(context.Background(),

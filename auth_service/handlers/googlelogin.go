@@ -3,7 +3,6 @@ package handlers
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"strings"
 	"time"
@@ -12,6 +11,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"google.golang.org/api/idtoken"
 )
@@ -25,162 +25,103 @@ func NewGoogleHandlers(base *BaseHandler) *GoogleHandlers {
 }
 
 func (g *GoogleHandlers) GoogleLogin(c *fiber.Ctx) error {
-	input := new(entity.GoogleLogin)	
-	ctx:= c.Context()
-
-	//PARSE THE REQUEST BODY
-	if err:= c.BodyParser(input); err!=nil{
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error":"cannot parse JSON",
-		})
-	}
-
-	//VALIDATE INPUT
-	if input.IdToken == "" || input.Role == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error":"id token and valid role are required",
+	var in entity.GoogleLogin
+	if err:= c.BodyParser(&in); err!=nil{
+		return c.Status(400).JSON(fiber.Map{
+			"error": "cannot parse JSON",
 		})
 	}
 	
-	//VALIDATE GOOGLE ID TOKEN
-
-	audience := os.Getenv("WEB_CLIENT_ID")
-
-	payload, err := idtoken.Validate(context.Background(), input.IdToken, audience)
-	if err != nil {
-		log.Printf("Validate failed: %v | aud=%s", err, audience)
+	if in.IdToken == "" || (in.Role != "seller" && in.Role!= "user"){
+		return c.Status(400).JSON(fiber.Map{
+			"error": "id_token & role are required",
+		})
 	}
 
-	email, _ := payload.Claims["email"].(string)
-	name, _ := payload.Claims["name"].(string)
+	pl, err:= idtoken.Validate(context.Background(), in.IdToken, os.Getenv("WEB_CLIENT_ID"))
+	if err != nil{
+		return c.Status(401).JSON(fiber.Map{
+			"error": "invalid google id token",
+		})
+	}
 
-	//acquire db connection
+	email   := pl.Claims["email"].(string)
+	name    := pl.Claims["name"].(string)
+	googleU := pl.Subject
+
+	// DB
+
+	ctx:= context.Background()
 	conn, err:= g.DB.Acquire(ctx)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error":fmt.Sprintf("failed to acquire db connection: %v", err),
+		return c.Status(500).JSON(fiber.Map{
+			"error": "fail to connect the database",
 		})
 	}
-
-	defer conn.Release()
-
-	var roleLower = strings.ToLower(input.Role)
-
-	switch roleLower {
-
+	var id uuid.UUID
+	switch strings.ToLower(in.Role) {
 	case "seller":
-		squery := `SELECT id_seller, email, FROM seller WHERE email=$1`
-		db_seller:= new(entity.Seller)
-		err = conn.QueryRow(ctx, squery, email).Scan(&db_seller.IdSeller)
-		if err != nil {
-			if err == pgx.ErrNoRows{
-				//INSERT NEW SELLER
-				iquery := `INSERT INTO seller (nama_seller, email, password, phone_num) VALUES ($1, $2, $3,) RETURNING id_seller`
-				err = conn.QueryRow(ctx, iquery, name, email, "-").Scan(&db_seller.IdSeller)
-				if err != nil {
-					if strings.Contains(err.Error(), "duplicate key"){
-						return c.Status(fiber.StatusConflict).JSON(fiber.Map{
-							"status":"error",
-							"message": "email already exist"})
-					}
-					return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-						"error": "failed to create seller account",
-					})
-				}
-		} else {
-				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{	
-					"error": "failed to query seller",
-			},
-		)
-	}
-}
-
-case "user":
-		query := `SELECT id_users FROM users WHERE email=$1`
-		dbuser:= new(entity.User)
-		err = conn.QueryRow(ctx, query, email).Scan(&dbuser.IdUsers, &dbuser.Email)
-		if err != nil {
-			if err == pgx.ErrNoRows{
-				//insert user baru
-				iquery := `INSERT INTO users (nama_users, email, password) VALUES ($1, $2, $3, $4) RETURNING id_users`
-				err = conn.QueryRow(ctx, iquery, name, email, "-").Scan(&dbuser.IdUsers)
-				if err != nil {
-					if strings.Contains(err.Error(), "duplicate key") {
-						return c.Status(fiber.StatusConflict).JSON(fiber.Map{
-							"status":"error",
-							"message": "email already exist",
-						},
-					)
-				}
-			}	
+		err = conn.QueryRow(ctx, `SELECT id_seller FROM seller WHERE email=$1`, email).Scan(&id)
+		if err == pgx.ErrNoRows {
+			err = conn.QueryRow(ctx,
+				`INSERT INTO seller (google_uid, email, nama_seller)
+				 VALUES ($1,$2,$3) RETURNING id_seller`,
+				googleU, email, name).Scan(&id)
+		}
+	case "user":
+		err = conn.QueryRow(ctx, `SELECT id_user FROM users WHERE email=$1`, email).Scan(&id)
+		if err == pgx.ErrNoRows {
+			err = conn.QueryRow(ctx,
+				`INSERT INTO users (google_uid, email, fullname)
+				 VALUES ($1,$2,$3) RETURNING id_user`,
+				googleU, email, name).Scan(&id)
 		}
 	}
+	if err != nil { return serverErr(c, err, "upsert") }
 
-	//JWT TOKEN
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-			"id":dbuser.IdUsers.String(),
-			"email": email,
-			"role": roleLower,
-			"exp": time.Now().Add(time.Hour * 24).Unix(),
+	// ---------- JWT ----------
+	acc, ref, err := makeTokens(id, email, in.Role, c.IP())
+	if err != nil { return serverErr(c, err, "jwt") }
+
+	// ---------- Redis ----------
+	if err := utils.RedisClient.Set(ctx,
+		fmt.Sprintf("%s:token:%s", in.Role, id), acc, 24*time.Hour).Err(); err != nil {
+		return serverErr(c, err, "redis token")
+	}
+	if err := utils.RedisClient.Set(ctx,
+		fmt.Sprintf("%s:refresh:%s", in.Role, id), ref, 30*24*time.Hour).Err(); err != nil {
+		return serverErr(c, err, "redis refresh")
+	}
+
+	// ---------- Done ----------
+	return c.JSON(fiber.Map{
+		"status":        "success",
+		"email":         email,
+		"role":          in.Role,
+		"token":         acc,
+		"refresh_token": ref,
 	})
 
-	tokenString, err := token.SignedString(jwtSecret)	
-		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"error":"failed to generate token",	
-			})
-	}
-
-	//refresh token
-	refreshToken:= jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-			"id": dbuser.IdUsers.String(),
-			"email":dbuser.Email,
-			"role": roleLower,
-			"ip": c.IP(),
-			"exp": time.Now().Add(time.Hour * 24 * 30).Unix(),
-		},
-	)
-
-	refreshTokenStr, err := refreshToken.SignedString(jwtSecret)
-		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"error":"failed to generate refresh token",
-			})
-	}
-
-	//save token and refresh token to redis
-	tokenKey := fmt.Sprintf("%s:token:%s", input.Role, dbuser.IdUsers)
-	refreshTokenKey := fmt.Sprintf("%s:refresh_token:%s", input.Role, dbuser.IdUsers)
 	
-	err = utils.RedisClient.Set(ctx, tokenKey, tokenString, 24*time.Hour).Err()
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error":"failed to store token in redis",
-		})
-	}
+}
 
-	err = utils.RedisClient.Set(ctx, refreshTokenKey, refreshTokenStr, time.Hour*24*30).Err()
-	if err!=nil{
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error":"failed to store token in redis",
-		})	
-	}
 
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"status": "Success",
-		"message": "Successfully logged in with Google",
-		"data": fiber.Map{
-			"email": email,
-			"role": input.Role,
-			"token": tokenString,
-			"refresh_token": refreshTokenStr,
-			}},
-		)
+func makeTokens(id uuid.UUID, email, role, ip string) (string, string, error) {
+	claims := jwt.MapClaims{
+		"id": id.String(), "email": email, "role": role,
+		"exp": time.Now().Add(24 * time.Hour).Unix(),
 	}
-	
+	at, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(jwtSecret)
+	if err != nil { return "", "", err }
 
-	// Optionally handle other roles or return an error fosw unsupported roles
-	return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-					"error": "unsupported role",
-	})
+	rClaims := jwt.MapClaims{
+		"id": id.String(), "email": email, "role": role, "ip": ip,
+		"exp": time.Now().Add(30 * 24 * time.Hour).Unix(),
+	}
+	rt, err := jwt.NewWithClaims(jwt.SigningMethodHS256, rClaims).SignedString(jwtSecret)
+	return at, rt, err
+}
+
+func serverErr(c *fiber.Ctx, e error, tag string) error {
+	return c.Status(500).JSON(fiber.Map{"error": fmt.Sprintf("%s: %v", tag, e)})
 }
