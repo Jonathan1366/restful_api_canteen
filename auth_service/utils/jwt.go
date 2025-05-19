@@ -7,9 +7,9 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-var jwtSecret = os.Getenv("JWT_SECRET")
+var jwtSecret = []byte(os.Getenv("JWT_SECRET"))
 
-func generateJWTSecret(userId, email string) (string, error){
+func GenerateJWTSecret(userId, email string) (string, error){
 	claims:= jwt.MapClaims{
 		"sub": userId,
 		"email": email,

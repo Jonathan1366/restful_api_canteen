@@ -22,7 +22,7 @@ type SellerHandler struct {
 	*BaseHandler
 }
 
-var jwtSecret = os.Getenv("JWT_SECRET")
+var jwtSecret = []byte(os.Getenv("JWT_SECRET"))
 
 func NewSellerHandler(base *BaseHandler) *SellerHandler {
 	return &SellerHandler{base}
@@ -179,18 +179,10 @@ func (h *SellerHandler) LoginSeller(c *fiber.Ctx) error {
 	}
 	
 	//JWT TOKEN
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"id_seller": dbseller.IdSeller.String(),
-		"email":     dbseller.Email,
-		"exp":       time.Now().Add(time.Hour * 24).Unix(),
-	})
-
-	//SIGN THE TOKEN WITH SECRET KEY AND UPLOAD TO FRONTEND
-	tokenString, err := token.SignedString(jwtSecret)
+	tokenString, err:= utils.GenerateJWTSecret(dbseller.IdSeller.String(), dbseller.Email)
 	if err != nil {
-		fmt.Printf("JWT Token generation error: %v\n", err) // Log error jika gagal
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "failed to generate jwt token",
+			
 		})
 	}
 
