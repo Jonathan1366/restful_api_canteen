@@ -177,7 +177,7 @@ func (h *SellerHandler) LoginSeller(c *fiber.Ctx) error {
 			"error": "Invalid password",
 		})
 	}
-
+	
 	//JWT TOKEN
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"id_seller": dbseller.IdSeller.String(),
@@ -282,7 +282,7 @@ func (h *SellerHandler) LogoutSeller(c *fiber.Ctx) error {
 				"message": "failed to logout and revoke token",
 			})
 		}
-
+		
 		return c.Status(fiber.StatusOK).JSON(fiber.Map{
 			"status":  "Success",
 			"message": "logged out successfully",

@@ -10,11 +10,14 @@ import (
 	"ubm-canteen/utils"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/spf13/viper"
 )
 
 	func main() {
 
+		viper.AutomaticEnv()
 		utils.InitRedis()
+		utils.InitGoogleOauth()
 		
 		err:= usecase.InitTextractClient("ap-southeast-1")
 		if err != nil {
@@ -42,9 +45,9 @@ import (
 		}
 		userHandler:= handlers.NewUserHandlers(baseHandler)
 		sellerHandlers:= handlers.NewSellerHandler(baseHandler)
-		googleHandler:= handlers.NewGoogleHandlers(baseHandler)
+		// googleHandler:= handlers.NewGoogleHandlers(baseHandler)
 	
-		routes.SetupRoutes(app, sellerHandlers, (*handlers.GoogleHandlers)(userHandler), (*handlers.UserHandler)(googleHandler) )
+		routes.SetupRoutes(app, sellerHandlers, userHandler)
 
 		port := os.Getenv("PORT")
 		if port==""{
