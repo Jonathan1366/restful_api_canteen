@@ -13,7 +13,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-	func main() {
+func main() {
 
 		viper.AutomaticEnv()
 		utils.InitRedis()
@@ -22,8 +22,9 @@ import (
 		if err != nil {
 			log.Fatalf("Failed to initialize textract client: %v", err)
 		} 
+
 		s3Bucket := utils.Presigner(utils.Presigner{})
-		
+
 		//inisialisasi aplikasi fiber dengan konfigurasi khusus
 		app := fiber.New(fiber.Config{
 			Prefork: false,
@@ -42,11 +43,12 @@ import (
 			DB: dbPool,	
 			Presigner: s3Bucket,
 		}
+		
 		userHandler:= handlers.NewUserHandlers(baseHandler)
 		sellerHandlers:= handlers.NewSellerHandler(baseHandler)
-		googleHandler:= handlers.GoogleHandler(baseHandler)
+		googleHandler:= handlers.NewGoogleHandlers(baseHandler)
 	
-		routes.SetupRoutes(app, sellerHandlers, userHandler, &googleHandler)
+		routes.SetupRoutes(app, sellerHandlers, userHandler, googleHandler)
 
 		port := os.Getenv("PORT")
 		if port==""{
@@ -54,8 +56,8 @@ import (
 		}
 		if err := app.Listen("0.0.0.0:" + port); err != nil {
 			log.Fatalf("Failed to start server: %v\n", err)
-		}
 	}
+}
 
 
 

@@ -6,15 +6,15 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func SetupRoutes(app *fiber.App, sellerHandlers, userHandlers, googleHandlers) {
+func SetupRoutes(app *fiber.App, sellerHandlers *handlers.SellerHandler, userHandlers *handlers.UserHandler, googleHandlers  *handlers.GoogleHandler) {
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error":"404 not found",
 		})
-	})
-
+	});
+	
 	v1:= app.Group("/api/v1")
-
+	
 	auth:= v1.Group("/auth")
 
 	//SELLER
@@ -37,5 +37,5 @@ func SetupRoutes(app *fiber.App, sellerHandlers, userHandlers, googleHandlers) {
 
 	//OAUTH2
 	google:= auth.Group("/google")
-	google.Post("/login", googlehandlers.GoogleSignIn)
+	google.Post("/login", googleHandlers.GoogleSignIn)
 }
