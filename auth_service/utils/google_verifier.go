@@ -7,8 +7,8 @@ import (
 	"google.golang.org/api/idtoken"
 )
 
-func VerifyGoogleIDToken(ctx context.Context, idToken string) (*entity.GoogleUser, error) {
-    payload, err := idtoken.Validate(ctx, idToken, "")
+func VerifyGoogleIDToken(ctx context.Context, idToken string, audience string) (*entity.GoogleUser, error) {
+    payload, err := idtoken.Validate(ctx, idToken, audience)
     if err != nil {
         return nil, fmt.Errorf("failed to validate ID token: %w", err)
     }

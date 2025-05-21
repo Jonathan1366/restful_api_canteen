@@ -10,8 +10,14 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+aud:=os.Getenv("WEB_CLIENT_ID")
+
 type GoogleHandler struct {
 	*BaseHandler
+}
+
+func NewGoogleHandlers(base *BaseHandler) *GoogleHandler{
+	return &GoogleHandler(BaseHandler: base)
 }
 
 func (h *GoogleHandler) GoogleSignIn(c *fiber.Ctx) error {
@@ -28,7 +34,7 @@ func (h *GoogleHandler) GoogleSignIn(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "Missing ID token or role")
 	}
 
-	googleUser, err := utils.VerifyGoogleIDToken(ctx, payload.IdToken)
+	googleUser, err := utils.VerifyGoogleIDToken(ctx, payload.IdToken, aud)
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "Invalid Google ID token")
 	}
@@ -82,7 +88,7 @@ func (h *GoogleHandler) GoogleSignIn(c *fiber.Ctx) error {
 		"message": "Login sukses",
 		"data": fiber.Map{
 			"access_token":  accessToken,
-			"refresh_token": refreshToken,
+			"refresh_token": refreshTokenString,
 		},
 	})
 }

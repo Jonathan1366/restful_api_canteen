@@ -20,7 +20,7 @@ func FindOrCreateGoogleUser(ctx context.Context, db *pgx.Conn, user *entity.Goog
 		// Cek apakah user seller sudah ada berdasarkan google_uid
 		query := `SELECT id_seller FROM seller WHERE google_uid = $1`
 		err := db.QueryRow(ctx, query, user.Sub).Scan(&id)
-		if err == pgx.ErrNoRows {
+		if err == nil {
 			// Cek kalau email sudah pernah dipakai di tabel users
 			emailCheck := `SELECT 1 FROM users WHERE email = $1 LIMIT 1`
 			var dummy int
@@ -42,7 +42,7 @@ func FindOrCreateGoogleUser(ctx context.Context, db *pgx.Conn, user *entity.Goog
 		// Cek apakah user sudah ada
 		query := `SELECT id_users FROM users WHERE email = $1`
 		err := db.QueryRow(ctx, query, user.Email).Scan(&id)
-		if err == pgx.ErrNoRows {
+		if err == nil {
 			// Pastikan tidak bentrok dengan seller
 			sellerCheck := `SELECT 1 FROM seller WHERE google_uid = $1 LIMIT 1`
 			var dummy int

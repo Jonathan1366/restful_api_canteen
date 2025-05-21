@@ -6,7 +6,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func SetupRoutes(app *fiber.App, sellerHandlers *handlers.SellerHandler, userHandlers *handlers.UserHandler, googlehandlers *handlers.GoogleHandler) {
+func SetupRoutes(app *fiber.App, sellerHandlers, userHandlers, googleHandlers) {
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error":"404 not found",

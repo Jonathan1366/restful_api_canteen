@@ -44,7 +44,7 @@ import (
 		}
 		userHandler:= handlers.NewUserHandlers(baseHandler)
 		sellerHandlers:= handlers.NewSellerHandler(baseHandler)
-		googleHandler:= handlers.GoogleHandler(handlers.GoogleHandler{})
+		googleHandler:= handlers.GoogleHandler(baseHandler)
 	
 		routes.SetupRoutes(app, sellerHandlers, userHandler, &googleHandler)
 
