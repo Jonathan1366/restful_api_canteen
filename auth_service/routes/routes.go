@@ -6,7 +6,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func SetupRoutes(app *fiber.App, Seller *handlers.SellerHandler, User *handlers.UserHandler, Google *handlers.GoogleHandler) {
+func SetupRoutes(app *fiber.App, SellerHandler *handlers.SellerHandler, UserHandler *handlers.UserHandler, GoogleHandler *handlers.GoogleHandler) {
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error":"404 not found",
@@ -36,7 +36,7 @@ func SetupRoutes(app *fiber.App, Seller *handlers.SellerHandler, User *handlers.
 	user.Post("/logout", User.LogoutUser)
 
 	//OAUTH2
-	googleRoute:= auth.Group("/google")
-	googleRoute.Post("/login", google.GoogleSignIn)
+	google:= auth.Group("/google")
+	google.Post("/login", google.GoogleSignIn)
 
 }
