@@ -44,9 +44,9 @@ import (
 		}
 		userHandler:= handlers.NewUserHandlers(baseHandler)
 		sellerHandlers:= handlers.NewSellerHandler(baseHandler)
-		// googleHandler:= handlers.NewGoogleHandlers(baseHandler)
+		googleHandler:= handlers.GoogleHandler(handlers.GoogleHandler{})
 	
-		routes.SetupRoutes(app, sellerHandlers, userHandler)
+		routes.SetupRoutes(app, sellerHandlers, userHandler, &googleHandler)
 
 		port := os.Getenv("PORT")
 		if port==""{

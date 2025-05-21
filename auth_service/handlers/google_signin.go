@@ -10,6 +10,9 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+type GoogleHandler struct {
+	*BaseHandler
+}
 
 func (h *BaseHandler) GoogleSignIn(c *fiber.Ctx) error {
 	ctx := c.Context()

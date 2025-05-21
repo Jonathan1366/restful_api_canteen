@@ -6,7 +6,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func SetupRoutes(app *fiber.App, Seller *handlers.SellerHandler, User *handlers.UserHandler) {
+func SetupRoutes(app *fiber.App, Seller *handlers.SellerHandler, User *handlers.UserHandler, google *handlers.GoogleHandler) {
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error":"404 not found",
@@ -29,7 +29,6 @@ func SetupRoutes(app *fiber.App, Seller *handlers.SellerHandler, User *handlers.
 	//S3 BUCKET
 	seller.Post("/presignurl", Seller.GeneratePresignedUploadURL)
 	
-
 	//USER
 	user:= auth.Group("/user")
 	user.Post("/register", User.RegisterUser)
@@ -37,7 +36,7 @@ func SetupRoutes(app *fiber.App, Seller *handlers.SellerHandler, User *handlers.
 	user.Post("/logout", User.LogoutUser)
 
 	//OAUTH2
-	// auth.Get("/google/login", google.GoogleLogin)
+	auth.Get("/google/login", google.GoogleSignIn)
 	// auth.Get("google/callback", google.GoogleCallBack)
 
 	// seller:= app.Group("/seller")
