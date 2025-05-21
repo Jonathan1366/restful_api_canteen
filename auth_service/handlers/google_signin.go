@@ -14,7 +14,7 @@ type GoogleHandler struct {
 	*BaseHandler
 }
 
-func (h *BaseHandler) GoogleSignIn(c *fiber.Ctx) error {
+func (h *GoogleHandler) GoogleSignIn(c *fiber.Ctx) error {
 	ctx := c.Context()
 	payload := new(entity.GoogleLogin)
 
