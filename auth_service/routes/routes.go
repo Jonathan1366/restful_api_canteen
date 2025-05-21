@@ -36,7 +36,7 @@ func SetupRoutes(app *fiber.App, Seller *handlers.SellerHandler, User *handlers.
 	user.Post("/logout", User.LogoutUser)
 
 	//OAUTH2
-	auth.Get("/google/login", google.GoogleSignIn)
+	auth.Post("/google/login", google.GoogleSignIn)
 	// auth.Get("google/callback", google.GoogleCallBack)
 
 	// seller:= app.Group("/seller")
