@@ -1,50 +1,85 @@
 package handlers
 
 import (
+	"time"
 	entity "ubm-canteen/models"
 	"ubm-canteen/repository"
 	"ubm-canteen/utils"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 
-
 func (h *BaseHandler) GoogleSignIn(c *fiber.Ctx) error {
-	payload:= new(entity.GoogleLogin)
+	ctx := c.Context()
+	payload := new(entity.GoogleLogin)
 
-	if err := c.BodyParser(&payload); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid request payload"})
+
+	if err := c.BodyParser(payload); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "Invalid request payload")
 	}
 
-	googleUser, err:= utils.VerifyGoogleIDToken(payload.IdToken)
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid Google ID token"})
+	// Validate the payload
+	if payload.IdToken == "" || payload.Role == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "Missing ID token or role")
 	}
 
-	conn, err:= h.DB.Acquire(c.Context())
+	googleUser, err := utils.VerifyGoogleIDToken(ctx, payload.IdToken)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error":"failed to acquire db connection",
-		})
+		return fiber.NewError(fiber.StatusBadRequest, "Invalid Google ID token")
+	}
+
+	conn, err := h.DB.Acquire(c.Context())
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Failed to acquire DB connection")
 	}
 	defer conn.Release()
 
-	userId, err:= repository.FindOrCreateGoogleUser(c.Context(), conn.Conn(), googleUser, payload.Role)
+	userID, err := repository.FindOrCreateGoogleUser(c.Context(), conn.Conn(), googleUser, payload.Role)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to find or create user"})
+		return fiber.NewError(fiber.StatusInternalServerError, "Failed to find or create user: "+err.Error())
 	}
 
-	accessToken, _:= utils.GenerateJWTSecret(userId, payload.Role)
-	// Generate refresh token
-	refreshToken, _:= utils.GenerateRefreshToken(userId)
-	return c.JSON(fiber.Map{
+	accessToken, err := utils.GenerateJWTSecret(userID, payload.Role)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Failed to generate access token")
+	}
+
+//REFRESH TOKEN
+	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"user_id":   userID,
+		"role":      payload.Role,
+		"ip_address": c.IP(),
+		"user_agent": c.Get("User-Agent"),
+		"exp":        time.Now().Add(time.Hour * 24 * 30).Unix(),
+	})
+
+	refreshTokenString, err := refreshToken.SignedString(jwtSecret)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to sign refresh token",
+		})
+	}
+
+	err = utils.RedisClient.Set(ctx, "token:"+userID, accessToken, time.Hour*24).Err()
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to store token in Redis",
+		})
+	}
+	err = utils.RedisClient.Set(ctx, "refresh:"+userID, refreshTokenString, time.Hour*24*30).Err()
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to store refresh token in Redis",
+		})
+	}
+	
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"message": "Login sukses",
 		"data": fiber.Map{
-			"access_token": accessToken,
+			"access_token":  accessToken,
 			"refresh_token": refreshToken,
 		},
 	})
-	}
+}

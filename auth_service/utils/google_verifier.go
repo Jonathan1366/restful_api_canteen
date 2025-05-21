@@ -2,31 +2,25 @@ package utils
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
 	"fmt"
-	"net/http"
-	"os"
 	entity "ubm-canteen/models"
+
+	"google.golang.org/api/idtoken"
 )
 
-func VerifyGoogleIDToken(ctx context.Context, idToken string) (*entity.GoogleUser, error){
-	resp, err:= http.Get(os.Getenv("google_token")+idToken)
-	if err != nil {
-		return nil, fmt.Errorf("failed to verify idToken: %w", err)
-	}
-	defer resp.Body.Close()
+func VerifyGoogleIDToken(ctx context.Context, idToken string) (*entity.GoogleUser, error) {
+    payload, err := idtoken.Validate(ctx, idToken, "")
+    if err != nil {
+        return nil, fmt.Errorf("failed to validate ID token: %w", err)
+    }
 
-	if resp.StatusCode != http.StatusOK{
-		return nil, errors.New("invalid Google ID Token")
-	}
+    user := &entity.GoogleUser{
+        Email:         payload.Claims["email"].(string),
+        EmailVerified: payload.Claims["email_verified"].(bool),
+        Name:          payload.Claims["name"].(string),
+        Picture:       payload.Claims["picture"].(string),
+        Sub:           payload.Subject,
+    }
 
-	var user entity.GoogleUser
-	if err:= json.NewDecoder(resp.Body).Decode(&user); err!=nil{
-		return nil, fmt.Errorf("failed to decode response: %w", err)
-	}
-	if user.Email=="" || user.Sub ==""{
-		return nil, errors.New("missing email or sub from token")
-	}
-	return &user, nil
-} 
+    return user, nil
+}

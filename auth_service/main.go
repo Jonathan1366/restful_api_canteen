@@ -17,7 +17,6 @@ import (
 
 		viper.AutomaticEnv()
 		utils.InitRedis()
-		utils.InitGoogleOauth()
 		
 		err:= usecase.InitTextractClient("ap-southeast-1")
 		if err != nil {
