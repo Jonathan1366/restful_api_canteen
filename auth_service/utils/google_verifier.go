@@ -6,11 +6,12 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
 	entity "ubm-canteen/models"
 )
 
 func VerifyGoogleIDToken(ctx context.Context, idToken string) (*entity.GoogleUser, error){
-	resp, err:= http.Get("https://oauth2.googleapis.com/tokeninfo?id_token="+idToken )
+	resp, err:= http.Get(os.Getenv("google_token")+idToken)
 	if err != nil {
 		return nil, fmt.Errorf("failed to verify idToken: %w", err)
 	}
