@@ -9,7 +9,7 @@ import (
 )
 
 func VerifyGoogleIDToken(ctx context.Context, idToken string, audience string) (*entity.GoogleUser, error) {
-    
+
     payload, err := idtoken.Validate(ctx, idToken, audience)
     
     if err != nil {
@@ -21,20 +21,15 @@ func VerifyGoogleIDToken(ctx context.Context, idToken string, audience string) (
         return nil, fmt.Errorf("email claim not found in ID token")
     }
     
-    emailVerified, ok := payload.Claims["email_verified"].(bool)
-    
     if !ok{
         return nil, fmt.Errorf("email_verified claim not found in ID token")
     }
     
     name, _ := payload.Claims["name"].(string)
-    picture, _ := payload.Claims["picture"].(string)
 
     return &entity.GoogleUser{
-        Email:         email,
-        EmailVerified: emailVerified,
-        Name:          name,
-        Picture:      picture,
         Sub: payload.Subject,      
+        Email:         email,
+        Name:          name,
     }, nil
 }

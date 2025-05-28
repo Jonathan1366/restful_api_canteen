@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"os"
 	"time"
 	entity "ubm-canteen/models"
@@ -9,8 +10,8 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
+	"google.golang.org/api/idtoken"
 )
-
 
 type GoogleHandler struct {
 	*BaseHandler
@@ -22,38 +23,44 @@ func NewGoogleHandlers(base *BaseHandler) *GoogleHandler{
 
 func (h *GoogleHandler) GoogleSignIn(c *fiber.Ctx) error {
 	
-	ctx := c.Context()
 
+	//PARSE & VALIDATE PAYLOAD	
 	payload := new(entity.GoogleLogin)
-
-
 	if err := c.BodyParser(payload); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "Invalid request payload")
 	}
 
-	// Validate the payload
 	if payload.IdToken == "" || payload.Role == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "Missing ID token or role")
 	}
 
-	
+	//VERIFY ID TOKEN WITH GOOGLE LIBRARY
 	aud:=os.Getenv("WEB_CLIENT_ID")
-	if aud == ""{
-		return fiber.NewError(fiber.StatusInternalServerError, "WEB_CLIENT_ID not set in env")
-	}
-
-	googleUser, err := utils.VerifyGoogleIDToken(ctx, payload.IdToken, aud)
+	token, err := idtoken.Validate(c.Context(), payload.IdToken, aud)
 	if err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "Invalid Google ID token: "+err.Error())
+		return fiber.NewError(fiber.StatusUnauthorized, "Invalid ID token: "+err.Error())
+		
+	} 
+
+	subject := token.Subject
+	claims := token.Claims
+	email, _ := claims["email"].(string)
+	name, _ := claims["name"].(string)
+
+	googleuser := &entity.GoogleUser{
+		Sub: subject,
+		Email: email,
+		Name: name,
 	}
 
 	conn, err := h.DB.Acquire(c.Context())
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Failed to acquire DB connection")
 	}
+	
 	defer conn.Release()
 
-	userID, err := repository.FindOrCreateGoogleUser(c.Context(), conn.Conn(), googleUser, payload.Role)
+	userID, err := repository.FindOrCreateGoogleUser(c.Context(), conn.Conn(), googleuser, payload.Role)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Failed to find or create user: "+err.Error())
 	}
@@ -63,9 +70,10 @@ func (h *GoogleHandler) GoogleSignIn(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusInternalServerError, "Failed to generate access token")
 	}
 
-//REFRESH TOKEN
+	jwtSecret := []byte(os.Getenv("JWT_SECRET"))
+	//REFRESH TOKEN
 	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"user_id":   userID,
+		"id_token": payload.IdToken,
 		"role":      payload.Role,
 		"ip_address": c.IP(),
 		"user_agent": c.Get("User-Agent"),
@@ -74,28 +82,23 @@ func (h *GoogleHandler) GoogleSignIn(c *fiber.Ctx) error {
 
 	refreshTokenString, err := refreshToken.SignedString(jwtSecret)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to sign refresh token",
-		})
+		return fiber.NewError(fiber.StatusInternalServerError, "Failed to generate refresh token")	
 	}
 
 	// SAVE TO REDIS
+	ctx := c.Context()
 
-	err = utils.RedisClient.Set(ctx, "token:"+userID, accessToken, time.Hour*24).Err()
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to store token in Redis",
-		})
+	if err := utils.RedisClient.Set(ctx, "token:"+payload.IdToken, accessToken, 24*time.Hour).Err(); err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "failed to store access token in redis")
 	}
-	
 	// Store refresh token in Redis
 
-	err = utils.RedisClient.Set(ctx, "refresh:"+userID, refreshTokenString, time.Hour*24*30).Err()
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to store refresh token in Redis",
-		})
+	if err := utils.RedisClient.Set(ctx, "refresh:"+userID, refreshTokenString, time.Hour*24*30).Err(); err!=nil{
+		return fiber.NewError(fiber.StatusInternalServerError, "failed to store refresh token in redis")
 	}
+
+	log.Println("Received UID:", subject) // Potong biar gak kepanjangan
+	log.Println("Role:", payload.Role)
 	
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"message": "Login sukses",
