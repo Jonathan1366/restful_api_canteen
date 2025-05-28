@@ -91,9 +91,9 @@ func (h *GoogleHandler) GoogleSignIn(c *fiber.Ctx) error {
 	if err := utils.RedisClient.Set(ctx, "token:"+payload.IdToken, accessToken, 24*time.Hour).Err(); err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "failed to store access token in redis")
 	}
-	// Store refresh token in Redis
 
-	if err := utils.RedisClient.Set(ctx, "refresh:"+userID, refreshTokenString, time.Hour*24*30).Err(); err!=nil{
+	// Store refresh token in Redis
+	if err := utils.RedisClient.Set(ctx, "refresh:"+payload.IdToken, refreshTokenString, time.Hour*24*30).Err(); err!=nil{
 		return fiber.NewError(fiber.StatusInternalServerError, "failed to store refresh token in redis")
 	}
 
