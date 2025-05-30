@@ -10,6 +10,7 @@ import (
 	"ubm-canteen/utils"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/jackc/pgx/v5"
 	"github.com/spf13/viper"
 )
 
@@ -41,8 +42,11 @@ func main() {
 
 		baseHandler:= &handlers.BaseHandler{
 			DB: dbPool,	
+			RedisClient: utils.RedisClient,
+			DefaultQueryExecMode: pgx.QueryExecModeExec,
 			Presigner: s3Bucket,
 		}
+
 		
 		userHandler:= handlers.NewUserHandlers(baseHandler)
 		sellerHandlers:= handlers.NewSellerHandler(baseHandler)

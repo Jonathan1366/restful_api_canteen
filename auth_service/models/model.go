@@ -89,9 +89,10 @@ type Location struct{
 	Alamat string `json:"alamat"`
 }
 
-type GoogleLogin struct{
-	IdToken string `json:"id_token"`
-	Role string `json:"role"`
+type GoogleLoginReq struct {
+  IDToken string `json:"id_token"`
+  Code    string `json:"code"`
+  Role    string `json:"role"`
 }
 
 type GoogleUser struct {
