@@ -24,7 +24,7 @@ func SetupRoutes(app *fiber.App, sellerHandlers *handlers.SellerHandler, userHan
 	seller.Post("/otp/send", sellerHandlers.SendOTP)
 	seller.Post("/otp/verify", sellerHandlers.VerifyOTP) 
 	seller.Post("/logout", sellerHandlers.LogoutSeller)
-	seller.Post("/store", sellerHandlers.StoreSeller)
+	seller.Post("/store/location", sellerHandlers.StoreLocSeller)
 
 	//S3 BUCKET
 	// seller.Post("/presignurl", Seller.GeneratePresignedUploadURL)

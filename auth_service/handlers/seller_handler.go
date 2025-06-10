@@ -89,6 +89,7 @@ func (h *SellerHandler) RegisterSeller(c *fiber.Ctx) error {
 			"error": fmt.Sprintf("Gagal mendapatkan koneksi: %v", err),
 		})
 	}
+
 	defer conn.Release() // MAKE SURE TO RELEASE CONNECTION TO POOL
 	// EXECUTE PREPARE STATEMENT FOR REGISTER SELLER
 	query := `INSERT INTO seller (id_seller, nama_seller, email, password, phone_num) VALUES ($1, $2, $3, $4, $5)`
@@ -229,6 +230,69 @@ func (h *SellerHandler) LoginSeller(c *fiber.Ctx) error {
 	})
 }
 
+//STORE LOC SELLER
+func (h* SellerHandler) StoreLocSeller (c *fiber.Ctx) error{
+	
+	input := new(entity.StoreSeller)
+	ctx:= c.Context()
+	
+	//DEALLOCATE
+	err:= utils.DeallocateAllStatement(ctx, h.DB)
+	if err != nil && err != pgx.ErrNoRows{
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": fmt.Sprintf("Gagal mendapatkan koneksi: %v", err),
+		})
+	}
+
+	// PARSE BODY REQUEST
+	if err := c.BodyParser(input); err != nil {
+		fmt.Printf("Failed to parse body: %v\n", err)
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"code":    400,
+			"message": "Invalid input: Failed to parse request body",
+		})
+	}
+
+	// VALIDATE INPUT
+	if input.Store_seller== "" || input.Loc_seller == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"code":    400,
+			"message": "Invalid Input: store_seller, loc_seller",
+			"details": fiber.Map{
+				"missing_fields": []string{"store_seller", "loc_seller"},
+			},
+		})
+	}
+	
+	conn, err:= h.DB.Acquire(ctx)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": fmt.Sprintf("Gagal mendapatkan koneksi: %v",err),
+		})
+	}
+
+	defer conn.Release()
+	
+	query := `UPDATE SELLER SET loc_seller = $1, store_seller = $2 WHERE id_seller = $3`
+	_, err = conn.Exec(ctx, query, input.Loc_seller, input.Store_seller)
+	if err!=nil{
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": fmt.Sprintf("Fail to update store seller: %v", err),
+		})
+	}
+
+	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
+		"status":  "Success",
+		"message": "Seller's store successfully updated",
+		"data": fiber.Map{
+			"loc_seller":  input.Loc_seller,
+			"store_seller": input.Store_seller,
+		},
+	})
+}
+
 // LOGOUT SELLER
 func (h *SellerHandler) LogoutSeller(c *fiber.Ctx) error {
 	//invalid jwt token (for example, by storing it in a blacklist)
@@ -291,76 +355,6 @@ func (h *SellerHandler) TokenRevocationLogic(d uuid.UUID, token string) any {
 	panic("unimplemented")
 }
 
-func (h *SellerHandler) StoreSeller(c *fiber.Ctx) error {
-
-	input := new(entity.Location)
-	ctx := c.Context()
-
-	err := utils.DeallocateAllStatement(ctx, h.DB)
-	if err != nil && err != pgx.ErrNoRows {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"status":  "error",
-			"message": "Failed to deallocate statement",
-		})
-	}
-
-	if err := c.BodyParser(input); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"status":  "error",
-			"code":    400,
-			"message": "Failed to parse body",
-		})
-	}
-
-	if input.NamaToko == "" || input.Alamat == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"status":  "error",
-			"code":    400,
-			"message": "Invalid input: Nama Toko and Alamat are required",
-		})
-	}
-
-	//save to database
-	store := entity.Location{
-		IdToko:   uuid.New(),
-		NamaToko: input.NamaToko,
-		Alamat:   input.Alamat,
-	}
-
-	conn, err := h.DB.Acquire(ctx)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": fmt.Sprintf("Failed to acquire connection: %v", err),
-		})
-	}
-	defer conn.Release()
-
-	//EXECUTE PREPARE STATEMENT FOR STORE LOCATION
-	query := `INSERT INTO toko (id_toko, nama_toko, alamat) VALUES ($1, $2, $3)`
-	_, err = conn.Exec(ctx, query, store.IdToko, store.NamaToko, store.Alamat)
-	if err != nil {
-		if strings.Contains(err.Error(), "duplicate key value") {
-			return c.Status(fiber.StatusConflict).JSON(fiber.Map{
-				"status":  "error",
-				"message": "Location already exists",
-			})
-		}
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": fmt.Sprintf("Failed to store location: %v", err),
-		})
-	}
-
-	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
-		"status":  "success",
-		"message": "Location successfully stored",
-		"data": fiber.Map{
-			"id_toko":   store.IdToko.String(),
-			"nama_toko": store.NamaToko,
-			"alamat":    store.Alamat,
-		},
-	})
-}
-
 // PRESIGNED URL AWS S3
 func (h *SellerHandler) GeneratePresignedUploadURL(c *fiber.Ctx) error {
 	fileName := c.Query("filename")
@@ -406,3 +400,5 @@ func (h *SellerHandler) GeneratePresignedUploadURL(c *fiber.Ctx) error {
 		},
 	})
 }
+
+

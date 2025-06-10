@@ -42,7 +42,7 @@ func (h *GoogleHandler) GoogleSignIn(c *fiber.Ctx) error {
 		payload.Claims["name"].(string), 
 		req.Role,
 	)
-
+	
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "db error: "+err.Error())
 	}

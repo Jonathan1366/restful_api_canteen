@@ -27,7 +27,7 @@ func InitDbPool(app *fiber.App) *pgxpool.Pool {
 	if urldb == "" {
 		log.Fatal("DATABASE_URL environment variable is not set")
 	}
-
+	
 	// Parse database URL
 	config, err := pgxpool.ParseConfig(urldb)
 	if err != nil {

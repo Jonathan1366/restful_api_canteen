@@ -100,3 +100,10 @@ type GoogleUser struct {
 	Name          string `json:"name"`
 	Sub           string `json:"sub"` // unique Google user ID
 }
+
+//UPDATE SELLER STORE
+type StoreSeller struct{
+	IdSeller      string `json:"id_seller"`
+	Loc_seller string `json:"loc_seller"`
+	Store_seller string `json:"store_seller"`
+}
