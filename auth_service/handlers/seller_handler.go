@@ -235,12 +235,22 @@ func (h* SellerHandler) StoreLocSeller (c *fiber.Ctx) error{
 	
 	input := new(entity.StoreSeller)
 	ctx:= c.Context()
+
 	
 	//DEALLOCATE
 	err:= utils.DeallocateAllStatement(ctx, h.DB)
 	if err != nil && err != pgx.ErrNoRows{
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": fmt.Sprintf("Gagal mendapatkan koneksi: %v", err),
+		})
+	}
+
+	idSeller, ok:= c.Locals("id_seller").(string)
+	if !ok || idSeller == ""{
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status": "error",
+			"code": 401,
+			"message": "Unauthorized: invalid or missing token",
 		})
 	}
 
@@ -276,14 +286,15 @@ func (h* SellerHandler) StoreLocSeller (c *fiber.Ctx) error{
 	defer conn.Release()
 	
 	query := `UPDATE SELLER SET loc_seller = $1, store_seller = $2 WHERE id_seller = $3`
-	_, err = conn.Exec(ctx, query, input.Loc_seller, input.Store_seller)
+	_, err = conn.Exec(ctx, query, input.Loc_seller, input.Store_seller, idSeller)
 	if err!=nil{
+		fmt.Printf("Database execution error: %v\n", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": fmt.Sprintf("Fail to update store seller: %v", err),
 		})
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"status":  "Success",
 		"message": "Seller's store successfully updated",
 		"data": fiber.Map{
