@@ -287,8 +287,8 @@ func (h* SellerHandler) StoreLocSeller (c *fiber.Ctx) error{
 		"status":  "Success",
 		"message": "Seller's store successfully updated",
 		"data": fiber.Map{
-			"loc_seller":  input.Loc_seller,
 			"store_seller": input.Store_seller,
+			"loc_seller":  input.Loc_seller,
 		},
 	})
 }
