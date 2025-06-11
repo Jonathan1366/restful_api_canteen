@@ -245,14 +245,7 @@ func (h* SellerHandler) StoreLocSeller (c *fiber.Ctx) error{
 		})
 	}
 
-	idSeller, ok:= c.Locals("id_seller").(string)
-	if !ok || idSeller == ""{
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"status": "error",
-			"code": 401,
-			"message": "Unauthorized: invalid or missing token",
-		})
-	}
+	idSeller := c.Locals("id_seller").(string)
 
 	// PARSE BODY REQUEST
 	if err := c.BodyParser(input); err != nil {
@@ -286,11 +279,17 @@ func (h* SellerHandler) StoreLocSeller (c *fiber.Ctx) error{
 	defer conn.Release()
 	
 	query := `UPDATE SELLER SET loc_seller = $1, store_seller = $2 WHERE id_seller = $3`
-	_, err = conn.Exec(ctx, query, input.Loc_seller, input.Store_seller, idSeller)
+	commandTag, err := conn.Exec(ctx, query, input.Loc_seller, input.Store_seller, idSeller)
 	if err!=nil{
 		fmt.Printf("Database execution error: %v\n", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": fmt.Sprintf("Fail to update store seller: %v", err),
+		})
+	}
+
+	if commandTag.RowsAffected() == 0 {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": "Seller with the given ID not found",
 		})
 	}
 
