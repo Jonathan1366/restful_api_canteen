@@ -47,7 +47,6 @@ func main() {
 			Presigner: s3Bucket,
 		}
 
-		
 		userHandler:= handlers.NewUserHandlers(baseHandler)
 		sellerHandlers:= handlers.NewSellerHandler(baseHandler)
 		googleHandler:= handlers.NewGoogleHandlers(baseHandler)

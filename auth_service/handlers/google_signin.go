@@ -4,7 +4,6 @@ import (
 	entity "ubm-canteen/models"
 	"ubm-canteen/repository"
 	"ubm-canteen/utils"
-
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -17,8 +16,7 @@ func NewGoogleHandlers(base *BaseHandler) *GoogleHandler{
 	return &GoogleHandler{BaseHandler: base, Repo: repository.NewUserRepo(base.DB)}
 }
 
-func (h *GoogleHandler) GoogleSignIn(c *fiber.Ctx) error {
-	
+func (h *GoogleHandler) GoogleSignIn(c *fiber.Ctx) error {	
 	//PARSE & VALIDATE PAYLOAD	
 	req := new(entity.GoogleLoginReq)
 	if err := c.BodyParser(req); err != nil {
@@ -30,7 +28,6 @@ func (h *GoogleHandler) GoogleSignIn(c *fiber.Ctx) error {
 	}
 
 	ctx := c.Context()
-
 	payload, err := utils.VerifyGoogleIDToken(c.Context(), req.IDToken)
 	if err != nil {
 		return fiber.NewError(fiber.StatusUnauthorized, "Invalid ID token: "+err.Error())
@@ -38,11 +35,11 @@ func (h *GoogleHandler) GoogleSignIn(c *fiber.Ctx) error {
 
 	userID, err := h.Repo.FindOrCreateGoogleUser(
 		ctx, payload.Subject, 
-		payload.Claims["email"].(string), 
-		payload.Claims["name"].(string), 
+		payload.Claims["email"].(string),
+		payload.Claims["name"].(string),
 		req.Role,
 	)
-	
+
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "db error: "+err.Error())
 	}

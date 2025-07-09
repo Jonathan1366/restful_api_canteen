@@ -21,7 +21,7 @@ type RegistSeller struct {
 	NamaSeller    string `json:"nama_seller"`
 	Email         string `json:"email"`
  	Password      string `json:"password"`
-	PhoneNum      string    `json:"phone_num"`
+	PhoneNum      string `json:"phone_num"`
 }
 
 type LoginSeller struct {
@@ -45,12 +45,12 @@ type VerifyOTP struct{
 }
 
 type User struct {
-		IdUsers      uuid.UUID `json:"id_users"`
-		NamaUsers    string `json:"nama_users"`
-		Email         string `json:"email"`
-		Password      string `json:"password"`
-		ImgUsers string `json:"img_user"`
-		Saldo string `json:"saldo"`
+	IdUsers      uuid.UUID `json:"id_users"`
+	NamaUsers    string `json:"nama_users"`
+	Email         string `json:"email"`
+	Password      string `json:"password"`
+	ImgUsers string `json:"img_user"`
+	Saldo string `json:"saldo"`
 }
 
 type RegisterUser struct {
@@ -96,14 +96,15 @@ type GoogleLoginReq struct {
 }
 
 type GoogleUser struct {
-	Email         string `json:"email"`
-	Name          string `json:"name"`
-	Sub           string `json:"sub"` // unique Google user ID
+	Email string `json:"email"`
+	Name  string `json:"name"`
+	Sub   string `json:"sub"` // unique Google user ID
 }
 
 //UPDATE SELLER STORE
 type StoreSeller struct{
-	IdSeller      string `json:"id_seller"`
+	IdSeller string `json:"id_seller"`
 	Loc_seller string `json:"loc_seller"`
 	Store_seller string `json:"store_seller"`
 }
+

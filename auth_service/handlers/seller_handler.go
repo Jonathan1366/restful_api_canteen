@@ -89,7 +89,7 @@ func (h *SellerHandler) RegisterSeller(c *fiber.Ctx) error {
 			"error": fmt.Sprintf("Gagal mendapatkan koneksi: %v", err),
 		})
 	}
-
+	
 	defer conn.Release() // MAKE SURE TO RELEASE CONNECTION TO POOL
 	// EXECUTE PREPARE STATEMENT FOR REGISTER SELLER
 	query := `INSERT INTO seller (id_seller, nama_seller, email, password, phone_num) VALUES ($1, $2, $3, $4, $5)`

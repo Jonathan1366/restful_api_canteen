@@ -24,7 +24,7 @@ func (r *UserRepo) FindOrCreateGoogleUser(ctx context.Context, sub, email, name,
   } else {
     table, idCol, nameCol = "users", "id_users", "nama_users"
   }
-
+  
   // 1) Cek existing
   var id string
   err := r.DB.QueryRow(ctx,

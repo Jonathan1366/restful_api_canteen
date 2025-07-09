@@ -3,7 +3,6 @@ package middleware
 import (
 	"context"
 	"strings"
-
 	"github.com/gofiber/fiber/v2"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/jackc/pgx/v5"
@@ -42,5 +41,3 @@ func (h*AuthHandlers) TokenValidationMiddleware(c*fiber.Ctx) error  {
 		}
 		return c.Next()
 }
-
-

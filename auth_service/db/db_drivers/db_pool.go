@@ -20,7 +20,7 @@ func InitDbPool(app *fiber.App) *pgxpool.Pool {
 		AllowOrigins: os.Getenv("API_ALLOW_ORIGINS"), // Mengambil dari environment variable
 		AllowHeaders: os.Getenv("API_ALLOW_HEADERS"), // Mengambil dari environment variable
 		AllowMethods: os.Getenv("API_ALLOW_METHODS"), // Mengambil dari environment variable
-	}))
+	}))	
 
 	// Ambil DATABASE_URL dari environment variable
 	urldb := os.Getenv("DATABASE_URL")
@@ -30,7 +30,7 @@ func InitDbPool(app *fiber.App) *pgxpool.Pool {
 	
 	// Parse database URL
 	config, err := pgxpool.ParseConfig(urldb)
-	if err != nil {
+	if err != nil {	
 		log.Fatalf("Unable to parse database configuration: %v\n", err)
 	}
 
@@ -77,6 +77,7 @@ func InitDbPool(app *fiber.App) *pgxpool.Pool {
 }
 
 // Menutup koneksi pool saat aplikasi shutdown
+
 func CloseDbPool() {
 	if dbPool != nil {
 		dbPool.Close()
