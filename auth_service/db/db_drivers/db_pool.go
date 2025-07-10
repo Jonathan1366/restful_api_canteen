@@ -9,6 +9,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -62,6 +63,11 @@ func InitDbPool(app *fiber.App) *pgxpool.Pool {
 	}
 	config.MaxConnIdleTime = duration
 
+	//Jalankan hook ini setiap kali koneksi baru dibuat
+	config.AfterConnect = func(ctx context.Context, conn *pgx.Conn) error {
+		_, err := conn.Exec(ctx, "SET search_path = auth_service, public")
+		return err
+	}
 	// Membuat pool koneksi
 	dbPool, err = pgxpool.NewWithConfig(context.Background(), config)
 	if err != nil {
