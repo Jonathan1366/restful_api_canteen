@@ -114,7 +114,7 @@ func (h *SellerHandler) RegisterSeller(c *fiber.Ctx) error {
 	// 		fmt.Println("OTP sent successfully")
 	// 	}
 	// }()
-
+	
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
 		"status":  "Success",
 		"message": "Seller successfully registered, OTP has been sent to your phone",
@@ -183,7 +183,6 @@ func (h *SellerHandler) LoginSeller(c *fiber.Ctx) error {
 	tokenString, err:= utils.GenerateJWTSecret(dbseller.IdSeller.String(), dbseller.Email)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			
 		})
 	}
 
@@ -411,7 +410,7 @@ func (h *SellerHandler) GeneratePresignedUploadURL(c *fiber.Ctx) error {
 			"error": "filename is required as query param",
 		})
 	}
-
+	
 	// Load AWS Config
 	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(os.Getenv("AWS_REGION")))
 	if err != nil {

@@ -11,6 +11,7 @@ var jwtSecret = []byte(os.Getenv("JWT_SECRET"))
 
 func GenerateJWTSecret(userId, email string) (string, error){
 	claims:= jwt.MapClaims{
+		"id_seller": userId,
 		"sub": userId,
 		"email": email,
 		"exp": time.Now().Add(time.Hour * 24).Unix(), //valid for 30 days

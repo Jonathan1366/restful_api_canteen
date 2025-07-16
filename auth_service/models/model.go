@@ -33,6 +33,7 @@ type OTP struct{
 	OTP string `json:"otp"`
 	ExpiryTime time.Time `json:"expiry_time"`
 }
+
 type OTPRequest struct{
 	IdSeller string `json:"id_seller"`
 	PhoneNum string `json:"phone_num"`
