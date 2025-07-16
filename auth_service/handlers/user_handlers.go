@@ -149,10 +149,9 @@ func (h *UserHandler) LoginUser(c *fiber.Ctx) error {
 	}
 
 	// Verify the password
-	if input.Password != dbUser.Password {
+	if !utils.CheckPassHash(input.Password, dbUser.Password) {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"status":  "error",
-			"message": "Invalid password",
+			"error": "Invalid password",
 		})
 	}
 
