@@ -132,7 +132,7 @@ func (h *UserHandler) LoginUser(c *fiber.Ctx) error {
 	defer conn.Release()
 
 	dbUser := new(entity.User)
-	query := `SELECT id_users, email, password FROM user WHERE email=$1`
+	query := `SELECT id_users, email, password FROM "user" WHERE email=$1`
 	err = conn.QueryRow(ctx, query, input.Email).Scan(&dbUser.IdUsers, &dbUser.Email, &dbUser.Password)
 
 	if err != nil {
