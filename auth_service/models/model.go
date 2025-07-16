@@ -49,8 +49,6 @@ type User struct {
 	NamaUsers    string `json:"nama_users"`
 	Email         string `json:"email"`
 	Password      string `json:"password"`
-	ImgUsers string `json:"img_user"`
-	Saldo string `json:"saldo"`
 }
 
 type RegisterUser struct {

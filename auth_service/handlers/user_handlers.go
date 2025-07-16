@@ -23,7 +23,7 @@ func NewUserHandlers(base *BaseHandler) *UserHandler {
 
 // REGISTER USER
 func (h *UserHandler) RegisterUser(c *fiber.Ctx) error {
-	input := new(entity.RegisterUser) // General registration struct
+	input := new(entity.User) // General registration struct
 	ctx := c.Context()
 
 	err := utils.DeallocateAllStatement(ctx, h.DB)
