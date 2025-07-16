@@ -66,7 +66,7 @@ func (h *UserHandler) RegisterUser(c *fiber.Ctx) error {
 	defer conn.Release()
 
 	// Insert user into the database
-	query := `INSERT INTO user (nama_users, email, password) VALUES ($1, $2, $3, $4)`
+	query := `INSERT INTO user (nama_users, email, password) VALUES ($1, $2, $3)`
 	_, err = conn.Exec(ctx, query, user.NamaUsers, user.Email, user.Password)
 	if err != nil {
 		if strings.Contains(err.Error(), "duplicate key value") {
