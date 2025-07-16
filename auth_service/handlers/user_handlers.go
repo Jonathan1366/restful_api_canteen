@@ -2,14 +2,15 @@ package handlers
 
 import (
 	"fmt"
-	"github.com/gofiber/fiber/v2"
-	"github.com/golang-jwt/jwt/v5"
-	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"strings"
 	"time"
 	entity "ubm-canteen/models"
 	"ubm-canteen/utils"
+
+	"github.com/gofiber/fiber/v2"
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 )
 
 type UserHandler struct {
@@ -65,7 +66,7 @@ func (h *UserHandler) RegisterUser(c *fiber.Ctx) error {
 	defer conn.Release()
 
 	// Insert user into the database
-	query := `INSERT INTO users (id_users, nama_users, email, password) VALUES ($1, $2, $3, $4)`
+	query := `INSERT INTO user (id_users, nama_users, email, password) VALUES ($1, $2, $3, $4)`
 	_, err = conn.Exec(ctx, query, user.IdUsers, user.NamaUsers, user.Email, user.Password)
 	if err != nil {
 		if strings.Contains(err.Error(), "duplicate key value") {
@@ -121,7 +122,7 @@ func (h *UserHandler) LoginUser(c *fiber.Ctx) error {
 	defer conn.Release()
 
 	dbUser := new(entity.User)
-	query := `SELECT id_users, email, password FROM users WHERE email=$1`
+	query := `SELECT id_users, email, password FROM user WHERE email=$1`
 	err = conn.QueryRow(ctx, query, input.Email).Scan(&dbUser.IdUsers, &dbUser.Email, &dbUser.Password)
 
 	if err != nil {

@@ -235,7 +235,6 @@ func (h* SellerHandler) StoreLocSeller (c *fiber.Ctx) error{
 	
 	input := new(entity.StoreSeller)
 	ctx:= c.Context()
-
 	
 	//DEALLOCATE
 	err:= utils.DeallocateAllStatement(ctx, h.DB)
@@ -244,7 +243,7 @@ func (h* SellerHandler) StoreLocSeller (c *fiber.Ctx) error{
 			"error": fmt.Sprintf("Gagal mendapatkan koneksi: %v", err),
 		})
 	}
-
+	
 	idSeller := c.Locals("id_seller").(string)
 
 	// PARSE BODY REQUEST
@@ -314,7 +313,7 @@ func (h *SellerHandler) LogoutSeller(c *fiber.Ctx) error {
 		})
 		// remove bearer from token string if present
 	}
-
+	
 	token = strings.TrimPrefix(token, "Bearer ")
 
 	//DELETE TOKEN FROM REDIS
