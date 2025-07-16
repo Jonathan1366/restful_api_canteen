@@ -51,14 +51,14 @@ type User struct {
 	Password      string `json:"password"`
 }
 
-type RegisterUser struct {
-	IdUsers      uuid.UUID `json:"id_users"`
-	NamaUsers    string `json:"nama_users"`
-	Email         string `json:"email"`
-	Password      string `json:"password"`
-	ImgUsers string `json:"img_user"`
-	Saldo string `json:"saldo"`
-}
+// type RegisterUser struct {
+// 	IdUsers      uuid.UUID `json:"id_users"`
+// 	NamaUsers    string `json:"nama_users"`
+// 	Email         string `json:"email"`
+// 	Password      string `json:"password"`
+// 	ImgUsers string `json:"img_user"`
+// 	Saldo string `json:"saldo"`
+// }
 
 type LoginUser struct {
 	Email    string `json:"email"`

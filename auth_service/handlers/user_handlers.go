@@ -103,7 +103,7 @@ func (h *UserHandler) RegisterUser(c *fiber.Ctx) error {
 
 // login user
 func (h *UserHandler) LoginUser(c *fiber.Ctx) error {
-	input := new(entity.LoginUser) // Use a general login struct
+	input := new(entity.User) // Use a general login struct
 	ctx := c.Context()
 
 	// Parse and validate the request body
