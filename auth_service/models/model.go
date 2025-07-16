@@ -60,6 +60,13 @@ type User struct {
 // 	Saldo string `json:"saldo"`
 // }
 
+// type TokenRevocation struct {
+//     Token      string    `db:"token"`      // mapping ke kolom 'token' di database
+//     EntityID   uuid.UUID `db:"entity_id"`  // mapping ke kolom 'entity_id' di database  
+//     EntityType string    `db:"entity_type"` // mapping ke kolom 'entity_type' di database
+//     RevokedAt  time.Time `db:"revoked_at"`  // mapping ke kolom 'revoked_at' di database
+// }
+
 type LoginUser struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`

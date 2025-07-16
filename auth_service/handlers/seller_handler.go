@@ -306,6 +306,10 @@ func (h* SellerHandler) StoreLocSeller (c *fiber.Ctx) error{
 func (h *SellerHandler) LogoutSeller(c *fiber.Ctx) error {
 	//invalid jwt token (for example, by storing it in a blacklist)
 	token := c.Get("Authorization")
+
+	if token == "" {
+				token = c.Get("accessToken")
+	}
 	if token == "" {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"status":  "error",
@@ -316,17 +320,12 @@ func (h *SellerHandler) LogoutSeller(c *fiber.Ctx) error {
 	
 	token = strings.TrimPrefix(token, "Bearer ")
 
-	//DELETE TOKEN FROM REDIS
-	ctx := c.Context()
-	err := utils.RedisClient.Del(ctx, "token:"+token).Err()
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"status":  "error",
-			"message": "failed to delete token from Redis",
-		})
-	}
-
+	// Parse token dulu untuk validasi sebelum delete dari Redis
 	parsedToken, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
+		// Validate signing method
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fiber.NewError(fiber.StatusUnauthorized, "invalid signing method")
+		}
 		return jwtSecret, nil
 	})
 
@@ -337,31 +336,71 @@ func (h *SellerHandler) LogoutSeller(c *fiber.Ctx) error {
 		})
 	}
 
-	if claims, ok := parsedToken.Claims.(jwt.MapClaims); ok && parsedToken.Valid {
-		idSeller := claims["id_seller"].(string)
-		//input token to revocation list
-		err := h.TokenRevocationLogic(uuid.MustParse(idSeller), token)
-		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"status":  "error",
-				"message": "failed to logout and revoke token",
-			})
-		}
-		
-		return c.Status(fiber.StatusOK).JSON(fiber.Map{
-			"status":  "Success",
-			"message": "logged out successfully",
-		})
-	} else {
+	// Validate claims
+	claims, ok := parsedToken.Claims.(jwt.MapClaims)
+	if !ok || !parsedToken.Valid {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"status":  "error",
 			"message": "invalid token",
 		})
 	}
+
+	// Extract seller ID
+	idSellerStr, ok := claims["id_seller"].(string)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"status":  "error",
+			"message": "invalid seller ID in token",
+		})
+	}
+
+	idSeller, err := uuid.Parse(idSellerStr)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"status":  "error",
+			"message": "invalid seller ID format",
+		})
+	}
+
+	// DELETE TOKEN FROM REDIS (perbaikan: hilangkan space)
+	ctx := c.Context()
+	err = utils.RedisClient.Del(ctx, "token:"+token).Err()
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "failed to delete token from Redis",
+		})
+	}
+
+	// Input token to revocation list (perbaikan: tambah entityType parameter)
+	err = h.TokenRevocationLogic(idSeller, "seller", token)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "failed to logout and revoke token",
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"status":  "success",
+		"message": "logged out successfully",
+	})
 }
 
-func (h *SellerHandler) TokenRevocationLogic(d uuid.UUID, token string) any {
-	panic("unimplemented")
+func (h *BaseHandler) TokenRevocationLogic(entity_id uuid.UUID, entityType string, token string) error {
+	ctx := context.Background()
+	conn, err:=h.DB.Acquire(ctx)
+	if err != nil {
+		return err
+	}
+	defer conn.Release()
+
+	query:= `INSERT INTO revoked_token (entity_id, entity_type, token) values ($1, $2, $3)`
+	_,err = conn.Exec(ctx, query, entity_id, entityType, token)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // PRESIGNED URL AWS S3
