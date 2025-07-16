@@ -38,7 +38,8 @@ func (h *UserHandler) RegisterUser(c *fiber.Ctx) error {
 	if err := c.BodyParser(input); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"status":  "error",
-			"message": "Invalid input",
+			"code":    400,
+			"message": "Invalid input: Failed to parse request body",
 		})
 	}
 
@@ -64,7 +65,7 @@ func (h *UserHandler) RegisterUser(c *fiber.Ctx) error {
 		NamaUsers: input.NamaUsers,
 		Email:     input.Email,
 		Password:  hashedPass,
-	} // Initialize saldo to 0	}
+	}
 
 	conn, err := h.DB.Acquire(ctx)
 	if err != nil {
@@ -75,7 +76,7 @@ func (h *UserHandler) RegisterUser(c *fiber.Ctx) error {
 	defer conn.Release()
 
 	// Insert user into the database
-	query := `INSERT INTO "user" (id_users, nama_users, email, password) VALUES ($1, $2, $3. $4)`
+	query := `INSERT INTO "user" (id_users, nama_users, email, password) VALUES ($1, $2, $3, $4)`
 	_, err = conn.Exec(ctx, query, user.IdUsers, user.NamaUsers, user.Email, hashedPass)
 	if err != nil {
 		if strings.Contains(err.Error(), "duplicate key value") {
