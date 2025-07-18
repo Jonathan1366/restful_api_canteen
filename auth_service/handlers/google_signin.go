@@ -4,6 +4,7 @@ import (
 	entity "ubm-canteen/models"
 	"ubm-canteen/repository"
 	"ubm-canteen/utils"
+
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -54,7 +55,7 @@ func (h *GoogleHandler) GoogleSignIn(c *fiber.Ctx) error {
 	}
 
 	  // 6) Generate internal JWT (access token aplikasi)
-  jwtStr, err := utils.GenerateJWTSecret(userID, req.Role)
+  jwtStr, err := utils.GenerateToken(userID, payload.Claims["email"].(string), req.Role)
   if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Failed to generate JWT: "+err.Error())
   }
