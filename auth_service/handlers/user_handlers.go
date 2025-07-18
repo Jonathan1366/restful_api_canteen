@@ -244,7 +244,7 @@ func (h *UserHandler) LogoutUser(c *fiber.Ctx) error {
 			"status":  "error",
 			"message": "invalid token",
 		})
-	}
+	} 
 	// Extract user ID
 	idUserStr, ok := claims["id_users"].(string)
 	if !ok {
