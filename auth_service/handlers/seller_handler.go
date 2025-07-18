@@ -178,7 +178,7 @@ func (h *SellerHandler) LoginSeller(c *fiber.Ctx) error {
 	}
 	
 	//JWT TOKEN
-	tokenString, err:= utils.GenerateJWTSecret(dbseller.IdSeller.String(), dbseller.Email)
+	tokenString, err:= utils.GenerateToken(dbseller.IdSeller.String(), dbseller.Email, "seller")
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 		})

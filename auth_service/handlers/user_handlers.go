@@ -156,7 +156,7 @@ func (h *UserHandler) LoginUser(c *fiber.Ctx) error {
 	}
 	
 	//JWT TOKEN
-	tokenString, err:= utils.GenerateJWTSecret(dbUser.IdUsers.String(), dbUser.Email)
+	tokenString, err:= utils.GenerateToken(dbUser.IdUsers.String(), dbUser.Email, "user")
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 		})
@@ -269,6 +269,15 @@ func (h *UserHandler) LogoutUser(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"status":  "error",
 			"message": "failed to delete token from Redis",
+		})
+	}
+
+		// DELETE REFRESH TOKEN FROM REDIS 
+	err = utils.RedisClient.Del(ctx, "refresh token:"+idUser.String()).Err()
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "failed to delete refresh token from Redis",
 		})
 	}
 
