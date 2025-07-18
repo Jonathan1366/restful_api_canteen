@@ -241,7 +241,13 @@ func (h* SellerHandler) StoreLocSeller (c *fiber.Ctx) error{
 		})
 	}
 	
-	idSeller := c.Locals("id_seller").(string)
+	idSeller, ok := c.Locals("id_seller").(string)
+	if !ok || idSeller == "" {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Unauthorized: id_seller not found in context",
+		})
+	}
 
 	// PARSE BODY REQUEST
 	if err := c.BodyParser(input); err != nil {
@@ -362,7 +368,7 @@ func (h *SellerHandler) LogoutSeller(c *fiber.Ctx) error {
 
 	// DELETE TOKEN FROM REDIS (perbaikan: hilangkan space)
 	ctx := c.Context()
-	err = utils.RedisClient.Del(ctx, "token:"+token).Err()
+	err = utils.RedisClient.Del(ctx, "token:"+idSeller.String()).Err()
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"status":  "error",
