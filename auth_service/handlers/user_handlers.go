@@ -89,7 +89,7 @@ func (h *UserHandler) RegisterUser(c *fiber.Ctx) error {
 			"error": fmt.Sprintf("Failed to register user: %v", err),
 		})
 	}
-
+	
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
 		"status":  "success",
 		"message": "User successfully registered",
@@ -120,7 +120,7 @@ func (h *UserHandler) LoginUser(c *fiber.Ctx) error {
 			"message": "Email and password are required.",
 		})
 	}
-
+	
 	// Query the database for user data based on the email
 	conn, err := h.DB.Acquire(ctx)
 	if err != nil {
@@ -154,36 +154,43 @@ func (h *UserHandler) LoginUser(c *fiber.Ctx) error {
 			"error": "Invalid password",
 		})
 	}
-
-	// JWT Token generation
-	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"id_users": dbUser.IdUsers.String(),
-		"email":    dbUser.Email,
-		"exp":      time.Now().Add(time.Hour * 24).Unix(),
-	})
-
-	//Sign the token with secret key upload to frontend
-	accessTokenString, err := accessToken.SignedString(jwtSecret)
+	
+	//JWT TOKEN
+	tokenString, err:= utils.GenerateJWTSecret(dbUser.IdUsers.String(), dbUser.Email)
 	if err != nil {
-		fmt.Printf("JWT Token generation error: %v\n", err) // Log error jika gagal
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "failed to generate jwt token",
 		})
 	}
 
-	//Refresh Token
+	//REFRESH TOKEN
 	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"id_seller":  dbUser.IdUsers.String(),
+		"id_user":  dbUser.IdUsers.String(),
 		"email":      dbUser.Email,
 		"ip_address": c.IP(),
 		"user_agent": c.Get("User-Agent"),
 		"exp":        time.Now().Add(time.Hour * 24 * 30).Unix(), //valid for 30 days
 	})
-
+	
 	refreshTokenString, err := refreshToken.SignedString(jwtSecret)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to generate refresh token",
+		})
+	}
+
+	//SAVE TOKEN TO REDIS
+	err = utils.RedisClient.Set(ctx, "token:"+dbUser.IdUsers.String(), tokenString, time.Hour*24).Err()
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "failed to store token in Redis",
+		})
+	}
+
+	//SAVE REFRESH TOKEN TO REDIS
+	err = utils.RedisClient.Set(ctx, "refresh token:"+dbUser.IdUsers.String(), refreshTokenString, time.Hour*24*30).Err()
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "failed to store refresh token in Redis",
 		})
 	}
 
@@ -192,7 +199,7 @@ func (h *UserHandler) LoginUser(c *fiber.Ctx) error {
 		"message": "Login successful",
 		"data": fiber.Map{
 			"email":         dbUser.Email,
-			"token":         accessTokenString,
+			"token":         tokenString,
 			"refresh_token": refreshTokenString,
 		},
 	})
@@ -201,16 +208,26 @@ func (h *UserHandler) LoginUser(c *fiber.Ctx) error {
 func (h *UserHandler) LogoutUser(c *fiber.Ctx) error {
 	//invalid jwt token (for example, by storing it in a blacklist)
 	token := c.Get("Authorization")
+
+	if token == "" {
+				token = c.Get("accessToken")
+	}
 	if token == "" {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"status":  "error",
 			"message": "no token provided",
 		})
+		// remove bearer from token string if present
 	}
-	// remove bearer from token string if present
+	
 	token = strings.TrimPrefix(token, "Bearer ")
 
+	// Parse token dulu untuk validasi sebelum delete dari Redis
 	parsedToken, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
+		// Validate signing method
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fiber.NewError(fiber.StatusUnauthorized, "invalid signing method")
+		}
 		return jwtSecret, nil
 	})
 
@@ -221,28 +238,53 @@ func (h *UserHandler) LogoutUser(c *fiber.Ctx) error {
 		})
 	}
 
-	if claims, ok := parsedToken.Claims.(jwt.MapClaims); ok && parsedToken.Valid {
-		IdUsers := claims["id_users"].(string)
-		//input token to revocation list
-		err := h.TokenRevocationLogic(uuid.MustParse(IdUsers), token)
-		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"status":  "error",
-				"message": "failed to logout and revoke token",
-			})
-		}
-		return c.Status(fiber.StatusOK).JSON(fiber.Map{
-			"status":  "Success",
-			"message": "logged out successfully",
-		})
-	} else {
+	// Validate claims
+	claims, ok := parsedToken.Claims.(jwt.MapClaims)
+	if !ok || !parsedToken.Valid {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"status":  "error",
 			"message": "invalid token",
 		})
 	}
-}
 
-func (h *UserHandler) TokenRevocationLogic(d uuid.UUID, token string) any {
-	panic("unimplemented")
+	// Extract seller ID
+	idSellerStr, ok := claims["id_user"].(string)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"status":  "error",
+			"message": "invalid seller ID in token",
+		})
+	}
+
+	idUser, err := uuid.Parse(idSellerStr)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"status":  "error",
+			"message": "invalid user ID format",
+		})
+	}
+
+	// DELETE TOKEN FROM REDIS (perbaikan: hilangkan space)
+	ctx := c.Context()
+	err = utils.RedisClient.Del(ctx, "token:"+idUser.String()).Err()
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "failed to delete token from Redis",
+		})
+	}
+
+	// Input token to revocation list (perbaikan: tambah entityType parameter)
+	err = h.TokenRevocationLogic(idUser, "seller", token)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "failed to logout and revoke token",
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"status":  "success",
+		"message": "logged out successfully",
+	})
 }
