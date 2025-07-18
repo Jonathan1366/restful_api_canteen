@@ -177,7 +177,6 @@ func (h *UserHandler) LoginUser(c *fiber.Ctx) error {
 			"error": "Failed to generate refresh token",
 		})
 	}
-
 	//SAVE TOKEN TO REDIS
 	err = utils.RedisClient.Set(ctx, "token:"+dbUser.IdUsers.String(), tokenString, time.Hour*24).Err()
 	if err != nil {
