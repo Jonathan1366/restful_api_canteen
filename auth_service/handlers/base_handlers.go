@@ -12,6 +12,7 @@ type BaseHandler struct {
 	RedisClient *redis.Client
 	Presigner utils.Presigner
 	DefaultQueryExecMode pgx.QueryExecMode
+	JWTSecret []byte // Secret key for JWT signing
 }
 
 

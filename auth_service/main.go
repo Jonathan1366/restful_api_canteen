@@ -40,11 +40,17 @@ func main() {
 		dbPool := db_drivers.InitDbPool(app)
 		defer dbPool.Close()
 
+		jwtSecret := []byte(os.Getenv("JWT_SECRET"))
+		if len(jwtSecret) == 0 {
+			log.Fatal("JWT_SECRET environment variable is not set")
+		}
+
 		baseHandler:= &handlers.BaseHandler{
 			DB: dbPool,	
 			RedisClient: utils.RedisClient,
 			DefaultQueryExecMode: pgx.QueryExecModeExec,
 			Presigner: s3Bucket,
+			JWTSecret: jwtSecret,
 		}
 
 		userHandler:= handlers.NewUserHandlers(baseHandler)

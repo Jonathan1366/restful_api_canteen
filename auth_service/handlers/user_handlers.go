@@ -171,7 +171,7 @@ func (h *UserHandler) LoginUser(c *fiber.Ctx) error {
 		"exp":        time.Now().Add(time.Hour * 24 * 30).Unix(), //valid for 30 days
 	})
 	
-	refreshTokenString, err := refreshToken.SignedString(jwtSecret)
+	refreshTokenString, err := refreshToken.SignedString(h.JWTSecret)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to generate refresh token",
@@ -228,7 +228,7 @@ func (h *UserHandler) LogoutUser(c *fiber.Ctx) error {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fiber.NewError(fiber.StatusUnauthorized, "invalid signing method")
 		}
-		return jwtSecret, nil
+		return h.JWTSecret, nil
 	})
 
 	if err != nil {

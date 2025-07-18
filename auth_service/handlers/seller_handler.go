@@ -22,8 +22,6 @@ type SellerHandler struct {
 	*BaseHandler
 }
 
-var jwtSecret = []byte(os.Getenv("JWT_SECRET"))
-
 func NewSellerHandler(base *BaseHandler) *SellerHandler {
 	return &SellerHandler{base}
 }
@@ -195,7 +193,7 @@ func (h *SellerHandler) LoginSeller(c *fiber.Ctx) error {
 		"exp":        time.Now().Add(time.Hour * 24 * 30).Unix(), //valid for 30 days
 	})
 	
-	refreshTokenString, err := refreshToken.SignedString(jwtSecret)
+	refreshTokenString, err := refreshToken.SignedString(h.JWTSecret)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to generate refresh token",
@@ -325,7 +323,7 @@ func (h *SellerHandler) LogoutSeller(c *fiber.Ctx) error {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fiber.NewError(fiber.StatusUnauthorized, "invalid signing method")
 		}
-		return jwtSecret, nil
+		return h.JWTSecret, nil
 	})
 
 	if err != nil {
