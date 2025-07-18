@@ -164,7 +164,7 @@ func (h *UserHandler) LoginUser(c *fiber.Ctx) error {
 
 	//REFRESH TOKEN
 	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"id_user":  dbUser.IdUsers.String(),
+		"id_users":  dbUser.IdUsers.String(),
 		"email":      dbUser.Email,
 		"ip_address": c.IP(),
 		"user_agent": c.Get("User-Agent"),
