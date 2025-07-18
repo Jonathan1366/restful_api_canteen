@@ -246,7 +246,6 @@ func (h *UserHandler) LogoutUser(c *fiber.Ctx) error {
 			"message": "invalid token",
 		})
 	}
-
 	// Extract seller ID
 	idSellerStr, ok := claims["id_user"].(string)
 	if !ok {
@@ -275,7 +274,7 @@ func (h *UserHandler) LogoutUser(c *fiber.Ctx) error {
 	}
 
 	// Input token to revocation list (perbaikan: tambah entityType parameter)
-	err = h.TokenRevocationLogic(idUser, "seller", token)
+	err = h.TokenRevocationLogic(idUser, "user", token)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"status":  "error",
