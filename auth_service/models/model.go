@@ -94,7 +94,6 @@ type GoogleUser struct {
 //UPDATE SELLER STORE
 type StoreSeller struct{
 	IdSeller string `json:"id_seller"`
-	Nama_seller string `json:"nama_seller"`
 	Loc_seller string `json:"loc_seller"`
 	Store_seller string `json:"store_seller"`
 }
