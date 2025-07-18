@@ -246,16 +246,16 @@ func (h *UserHandler) LogoutUser(c *fiber.Ctx) error {
 			"message": "invalid token",
 		})
 	}
-	// Extract seller ID
-	idSellerStr, ok := claims["id_user"].(string)
+	// Extract user ID
+	idUserStr, ok := claims["id_users"].(string)
 	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"status":  "error",
-			"message": "invalid seller ID in token",
+			"message": "invalid user ID in token",
 		})
 	}
 
-	idUser, err := uuid.Parse(idSellerStr)
+	idUser, err := uuid.Parse(idUserStr)
 	if err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"status":  "error",
