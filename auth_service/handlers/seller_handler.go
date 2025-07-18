@@ -228,7 +228,7 @@ func (h *SellerHandler) LoginSeller(c *fiber.Ctx) error {
 }
 
 //STORE LOC SELLER
-func (h* SellerHandler) StoreLocSeller (c *fiber.Ctx) error{
+func (h* SellerHandler) StoreLocSeller(c *fiber.Ctx) error{
 	
 	input := new(entity.StoreSeller)
 	ctx:= c.Context()
