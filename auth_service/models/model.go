@@ -52,22 +52,6 @@ type User struct {
 	Password      string `json:"password"`
 }
 
-// type RegisterUser struct {
-// 	IdUsers      uuid.UUID `json:"id_users"`
-// 	NamaUsers    string `json:"nama_users"`
-// 	Email         string `json:"email"`
-// 	Password      string `json:"password"`
-// 	ImgUsers string `json:"img_user"`
-// 	Saldo string `json:"saldo"`
-// }
-
-// type TokenRevocation struct {
-//     Token      string    `db:"token"`      // mapping ke kolom 'token' di database
-//     EntityID   uuid.UUID `db:"entity_id"`  // mapping ke kolom 'entity_id' di database  
-//     EntityType string    `db:"entity_type"` // mapping ke kolom 'entity_type' di database
-//     RevokedAt  time.Time `db:"revoked_at"`  // mapping ke kolom 'revoked_at' di database
-// }
-
 type LoginUser struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
@@ -110,6 +94,7 @@ type GoogleUser struct {
 //UPDATE SELLER STORE
 type StoreSeller struct{
 	IdSeller string `json:"id_seller"`
+	Nama_seller string `json:"nama_seller"`
 	Loc_seller string `json:"loc_seller"`
 	Store_seller string `json:"store_seller"`
 }
