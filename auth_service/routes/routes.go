@@ -19,13 +19,15 @@ func SetupRoutes(app *fiber.App, sellerHandlers *handlers.SellerHandler, userHan
 	auth:= v1.Group("/auth")
 
 	//SELLER
-	seller:= auth.Group("/seller", middleware.AuthMiddleware("seller"))
+	seller:= auth.Group("/seller")
 	seller.Post("/register", sellerHandlers.RegisterSeller)
 	seller.Post("/login", sellerHandlers.LoginSeller)
 	seller.Post("/otp/send", sellerHandlers.SendOTP)
 	seller.Post("/otp/verify", sellerHandlers.VerifyOTP) 
-	seller.Post("/logout", sellerHandlers.LogoutSeller)
-	seller.Put("/store/location", sellerHandlers.StoreLocSeller)
+	
+	sellerPrivate := auth.Group("/seller", middleware.AuthMiddleware("seller"))
+	sellerPrivate.Post("/logout", sellerHandlers.LogoutSeller)
+	sellerPrivate.Put("/store/location", sellerHandlers.StoreLocSeller)
 
 	//S3 BUCKET
 	// seller.Post("/presignurl", Seller.GeneratePresignedUploadURL)
