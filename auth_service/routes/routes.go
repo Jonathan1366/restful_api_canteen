@@ -2,6 +2,7 @@ package routes
 
 import (
 	"ubm-canteen/handlers"
+	"ubm-canteen/middleware"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -18,7 +19,7 @@ func SetupRoutes(app *fiber.App, sellerHandlers *handlers.SellerHandler, userHan
 	auth:= v1.Group("/auth")
 
 	//SELLER
-	seller:= auth.Group("/seller")
+	seller:= auth.Group("/seller", middleware.AuthMiddleware("seller"))
 	seller.Post("/register", sellerHandlers.RegisterSeller)
 	seller.Post("/login", sellerHandlers.LoginSeller)
 	seller.Post("/otp/send", sellerHandlers.SendOTP)
