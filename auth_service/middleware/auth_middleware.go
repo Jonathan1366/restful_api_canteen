@@ -1,59 +1,49 @@
+// file: middleware/auth_middleware.go
 package middleware
 
 import (
-	"context"
+	"fmt"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/lestrrat-go/jwx/v2/jwk"
-	"github.com/lestrrat-go/jwx/v2/jwt"
+	"github.com/golang-jwt/jwt/v5"
 )
 
-var jwksUrl = []byte(os.Getenv("JWKS_URL"))
-var keySetCache *jwk.Cache
-
-func init(){
-	keySetCache = jwk.NewCache(context.Background())
-	keySetCache.Register(string(jwksUrl), jwk.WithRefreshInterval(1*time.Hour))
-}
-
-func Supabase () fiber.Handler{
-	return func (c*fiber.Ctx) error {
-		authHeaders := c.Get("Authorization")
-		if authHeaders == ""{
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"error": "Missing authorization header",
-			})
+func AuthMiddleware(role string) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		// === LANGKAH 1: AMBIL TOKEN ===
+		authHeader := c.Get("Authorization")
+		if authHeader == "" {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "Request needs a token"})
 		}
-		tokenString := strings.TrimPrefix(authHeaders, "Bearer")
-		if tokenString==""{
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"error": "Missing token",
-			})
+		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+		if tokenString == authHeader {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "Invalid token format"})
 		}
-		keySet, err := jwk.Fetch(c.Context(), string(jwksUrl))
+
+		// === LANGKAH 2: VALIDASI TOKEN & AMBIL ID ===
+		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+			}
+			return []byte(os.Getenv("JWT_SECRET")), nil
+		})
 		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"error":"Failed to fetch authorization keys",
-			})
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "Invalid token"})
 		}
-		token, err:= jwt.ParseString(tokenString, jwt.WithKeySet(keySet))
-		if err != nil {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"error": "Invalid or expired token",
-			})
+		claims, ok := token.Claims.(jwt.MapClaims)
+		if !ok || !token.Valid {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "Invalid token claims"})
 		}
-
-		supabaseUserID := token.Subject()
-		if supabaseUserID == ""{
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"error": "User ID not found in token",
-			})
+		claimKey := "id_" + role
+		id, idOk := claims[claimKey].(string)
+		if !idOk {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"message": "Access forbidden for this role"})
 		}
 
-		c.Locals("id_seller", supabaseUserID)
+		// === LANGKAH 3: TERUSKAN REQUEST ===
+		c.Locals(claimKey, id)
 		return c.Next()
 	}
 }
