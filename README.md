@@ -10,9 +10,13 @@ A high-performance, scalable backend system for a modern canteen e-commerce appl
 
 ### 🚧 Project Status: Actively Under Development 🚧
 
-**Please Note:** This is a work-in-progress project. The primary goal is to serve as a learning platform and a portfolio piece to demonstrate expertise in backend development, not as a production-ready application. Core features are being actively developed and the architecture is continuously being refined.
+This project is currently in active development.  
+It is designed and structured with a **production-grade architecture** in mind, but not all core modules are fully implemented yet.  
+The focus at this stage is on building a **robust backend foundation** — ensuring scalability, clean architecture, and maintainability.  
 
----
+✅ Authentication and payment modules are in progress.  
+🧱 Additional services and infrastructure layers will be integrated incrementally.
+
 
 ## 🏛️ Architecture Overview
 
