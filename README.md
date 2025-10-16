@@ -17,6 +17,7 @@ The focus at this stage is on building a **robust backend foundation** — ensur
 ✅ Authentication and payment modules are in progress.  
 🧱 Additional services and infrastructure layers will be integrated incrementally.
 
+---
 
 ## 🏛️ Architecture Overview
 
